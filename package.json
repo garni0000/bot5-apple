@@ -1,0 +1,29 @@
+{
+  "name": "telegram-bot-apple-hack",
+  "version": "1.0.0",
+  "description": "Un bot Telegram pour le hack Apple of Fortune.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "apple-hack",
+    "nodejs",
+    "mongodb"
+  ],
+  "author": "Votre Nom",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.61.0",
+    "mongodb": "^5.7.0",
+    "dotenv": "^16.3.1",
+    "http": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
