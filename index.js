@@ -11,11 +11,11 @@ const client = new MongoClient(mongoUrl);
 const channelIds = [-1002191790432];
 const freeSequenceLimit = 5;
 const requiredReferrals = 5;
-const signalInterval = 2 * 60 * 1000; // 2 minutes
+const signalInterval = 2 * 5 * 1000; // 2 minutes
 const videoUrl = 'https://t.me/gsgzheh/3'; // Lien de la vidéo
 
 // Liste des administrateurs (remplacez par les ID des administrateurs)
-const ADMIN_IDS = [7446988979, 987654321]; // Exemple d'ID admin
+const ADMIN_IDS = [1613186921, 987654321]; // Exemple d'ID admin
 
 // Connexion à MongoDB
 async function connectDB() {
@@ -176,7 +176,7 @@ bot.on('callback_query', async (query) => {
       }
       break;
     case 'share_invite':
-      await bot.sendMessage(chatId, `📨 Partagez votre lien de parrainage pour débloquer le PRO :\nhttps://t.me/${bot.options.username}?start=${chatId}`);
+      await bot.sendMessage(chatId, `📨 Partagez votre lien de parrainage pour débloquer le PRO :\nhttps://t.me/addconfigbot?start=${chatId}`);
       break;
     case 'buy_pro':
       await bot.sendInvoice(
@@ -200,7 +200,7 @@ bot.on('message', async (msg) => {
   if (/^\d{10}$/.test(text)) {
     const code = parseInt(text, 10);
     if (code >= 1000000000 && code <= 1999999999) {
-      await bot.sendMessage(chatId, '✅ Code 1xbet valide !', {
+      await bot.sendMessage(chatId, '✅ id valide !', {
         reply_markup: {
           inline_keyboard: [
             [{ text: 'Obtenir le signal 🍎', callback_data: 'get_signal' }]
@@ -228,29 +228,104 @@ bot.onText(/\/adminstats/, async (msg) => {
   bot.sendMessage(chatId, `📊 Statistiques Admin :\n\n👤 Utilisateurs totaux : ${totalUsers}\n🔗 Références totales : ${totalReferrals}`);
 });
 
+
+
+
+
+
+
 bot.onText(/\/broadcast/, async (msg) => {
   const chatId = msg.chat.id;
+
+  // Vérification des permissions
   if (!ADMIN_IDS.includes(chatId)) {
     return bot.sendMessage(chatId, '❌ Vous n\'avez pas la permission d\'utiliser cette commande.');
   }
 
+  // Vérification du message auquel on répond
   if (!msg.reply_to_message) {
     return bot.sendMessage(chatId, '❌ Répondez à un message avec /broadcast pour l\'envoyer à tous les utilisateurs.');
   }
 
   const users = await getAllUsers();
-  const messageToSend = msg.reply_to_message.text || msg.reply_to_message.caption || 'Message sans texte';
+  const originalMessage = msg.reply_to_message;
+  let successCount = 0;
+  let failCount = 0;
 
-  for (const user of users) {
+  // Fonction pour envoyer le message selon son type
+  const sendMessage = async (userChatId) => {
     try {
-      await bot.sendMessage(user.chatId, messageToSend);
+      if (originalMessage.text) {
+        // Message texte simple
+        await bot.sendMessage(userChatId, originalMessage.text, {
+          parse_mode: originalMessage.parse_mode,
+          entities: originalMessage.entities
+        });
+      } else if (originalMessage.photo) {
+        // Photo avec légende
+        await bot.sendPhoto(userChatId, originalMessage.photo[originalMessage.photo.length - 1].file_id, {
+          caption: originalMessage.caption,
+          parse_mode: originalMessage.parse_mode,
+          caption_entities: originalMessage.caption_entities
+        });
+      } else if (originalMessage.video) {
+        // Vidéo avec légende
+        await bot.sendVideo(userChatId, originalMessage.video.file_id, {
+          caption: originalMessage.caption,
+          parse_mode: originalMessage.parse_mode,
+          caption_entities: originalMessage.caption_entities
+        });
+      } else if (originalMessage.document) {
+        // Document avec légende
+        await bot.sendDocument(userChatId, originalMessage.document.file_id, {
+          caption: originalMessage.caption,
+          parse_mode: originalMessage.parse_mode,
+          caption_entities: originalMessage.caption_entities
+        });
+      } else if (originalMessage.audio) {
+        // Audio avec légende
+        await bot.sendAudio(userChatId, originalMessage.audio.file_id, {
+          caption: originalMessage.caption,
+          parse_mode: originalMessage.parse_mode,
+          caption_entities: originalMessage.caption_entities
+        });
+      } else if (originalMessage.voice) {
+        // Message vocal
+        await bot.sendVoice(userChatId, originalMessage.voice.file_id, {
+          caption: originalMessage.caption,
+          parse_mode: originalMessage.parse_mode,
+          caption_entities: originalMessage.caption_entities
+        });
+      } else if (originalMessage.sticker) {
+        // Sticker
+        await bot.sendSticker(userChatId, originalMessage.sticker.file_id);
+      } else {
+        // Type de média non supporté
+        throw new Error('Type de média non supporté');
+      }
+      successCount++;
     } catch (err) {
-      console.error(`❌ Erreur lors de l'envoi à ${user.chatId}:`, err.message);
+      console.error(`❌ Erreur lors de l'envoi à ${userChatId}:`, err.message);
+      failCount++;
     }
+  };
+
+  // Envoi à tous les utilisateurs
+  for (const user of users) {
+    await sendMessage(user.chatId);
   }
 
-  bot.sendMessage(chatId, `✅ Message envoyé à ${users.length} utilisateurs.`);
+  // Rapport d'envoi
+  const report = `✅ Diffusion terminée :
+- Envoyés avec succès: ${successCount}
+- Échecs: ${failCount}
+- Total: ${users.length}`;
+
+  bot.sendMessage(chatId, report);
 });
+
+
+
 
 // Serveur HTTP
 const server = http.createServer((req, res) => {
